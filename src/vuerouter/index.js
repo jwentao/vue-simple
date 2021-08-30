@@ -33,6 +33,7 @@ export default class VueRouter {
   init () {
     this.createRouteMap();
     this.initComponents(_Vue);
+    this.initEvents();
   }
 
   createRouteMap () {
@@ -43,11 +44,43 @@ export default class VueRouter {
   }
 
   initComponents (Vue) {
+    const self = this;
     Vue.component('router-link', {
       props: {
         to: String
       },
-      template: `<a :href="to"><slot></slot></a>`
+      // template: `<a :href="to"><slot></slot></a>` // template，运行时版本的vue不支持
+      render(h, context) {
+        return h('a', {
+          attrs: {
+            href: this.to
+          },
+          on: {
+            click: this.clickHandler
+          }
+        }, [this.$slots.default])
+      },
+      methods: {
+        clickHandler(e) {
+          history.pushState({}, '', this.to);
+          this.$router.data.current = this.to;
+          e.preventDefault();
+        }
+      }
     });
+
+    Vue.component('router-view', {
+      render(h, context) {
+        const component = self.routeMap[self.data.current];
+        return h(component);
+      }
+    });
+  }
+
+  initEvents () {
+    window.addEventListener('popstate', () => {
+      this.data.current = window.location.pathname;
+      console.log(this);
+    })
   }
 }
